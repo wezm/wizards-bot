@@ -87,7 +87,6 @@ async function nitterSlashCommand(request: Request) {
 
   const formData = await request.formData();
   const formText = formData.get("text");
-  let mistake: string;
   if (typeof formText === "string" && !formText.match(/^\s*$/)) {
     const nitterLink = formText.replaceAll("twitter.com", "nitter.net");
     return json({
