@@ -92,7 +92,7 @@ async function nitterSlashCommand(request: Request) {
     const nitterLink = formText.replaceAll("twitter.com", "nitter.net");
     return json({
       "response_type": "in_channel",
-      "text": `<${nitterLink}>`,
+      "text": `${nitterLink}`,
     });
   } else {
     return json({
