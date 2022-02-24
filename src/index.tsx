@@ -77,7 +77,7 @@ function Home() {
 
             <ul>
               <li>
-                <code>/nit</code> — Convert Twitter link to Nitter link
+                <code>/nit</code> — Convert Twitter links to Nitter links; Medium links to Scribe links.
               </li>
             </ul>
           </main>
