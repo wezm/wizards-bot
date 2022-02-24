@@ -8,6 +8,7 @@ import {
   serveStatic,
   validateRequest,
 } from "https://deno.land/x/sift@0.4.3/mod.ts";
+import { twitterToNitter } from "./url.ts";
 
 const routes: Routes = {
   "/": () => jsx(<Home />),
@@ -39,10 +40,10 @@ async function nitterSlashCommand(request: Request) {
   const formData = await request.formData();
   const formText = formData.get("text");
   if (typeof formText === "string" && !formText.match(/^\s*$/)) {
-    const nitterLink = formText.replaceAll("twitter.com", "nitter.net");
+    const nitterText = twitterToNitter(formText);
     return json({
       "response_type": "in_channel",
-      "text": `${nitterLink}`,
+      "text": `${nitterText}`,
     });
   } else {
     return json({
