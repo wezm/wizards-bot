@@ -8,17 +8,18 @@ import {
   serveStatic,
   validateRequest,
 } from "https://deno.land/x/sift@0.4.3/mod.ts";
-import { twitterToNitter } from "./url.ts";
+
+import { twitterToNitter, mediumToScribe } from "./url.ts";
 
 const routes: Routes = {
   "/": () => jsx(<Home />),
-  "/nit": nitterSlashCommand,
+  "/nit": nitSlashCommand,
   "/style.css": serveStatic("style.css", { baseUrl: import.meta.url }),
   404: () => jsx(<NotFound />, { status: 404 }),
 };
 serve(routes);
 
-async function nitterSlashCommand(request: Request) {
+async function nitSlashCommand(request: Request) {
   const { error } = await validateRequest(request, {
     POST: {
       headers: ["Authorization", "Content-Type"],
@@ -40,15 +41,15 @@ async function nitterSlashCommand(request: Request) {
   const formData = await request.formData();
   const formText = formData.get("text");
   if (typeof formText === "string" && !formText.match(/^\s*$/)) {
-    const nitterText = twitterToNitter(formText);
+    const newText = mediumToScribe(twitterToNitter(formText));
     return json({
       "response_type": "in_channel",
-      "text": `${nitterText}`,
+      "text": `${newText}`,
     });
   } else {
     return json({
       "response_type": "ephemeral",
-      "text": "You need to supply a URL",
+      "text": "You need to supply some text",
     });
   }
 }
