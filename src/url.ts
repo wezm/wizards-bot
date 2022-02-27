@@ -11,10 +11,10 @@ function maybeReplaceUrl(url0: string): string {
 
   if (url.host.endsWith("twitter.com")) {
     url.host = "nitter.net";
-    return `${url} [source](${url0})`;
+    return `${url} ([source](${url0}))`;
   } else if (url.host.endsWith("medium.com")) {
     url.host = "scribe.rip";
-    return `${url} [source](${url0})`;
+    return `${url} ([source](${url0}))`;
   } else {
     // Return untouched
     return url0;

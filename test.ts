@@ -9,7 +9,7 @@ Deno.test("twitterToNitter desktop", () => {
   let val = substituteUrls("https://twitter.com/wezm");
   assertEquals(
     val,
-    "https://nitter.net/wezm [source](https://twitter.com/wezm)",
+    "https://nitter.net/wezm ([source](https://twitter.com/wezm))",
   );
 });
 
@@ -19,7 +19,7 @@ Deno.test("twitterToNitter mobile", () => {
   );
   assertEquals(
     val,
-    "https://nitter.net/wezm/status/1323096439602339840?s=20&t=Zper7b85RVlpWoTKKJDkbg [source](https://mobile.twitter.com/wezm/status/1323096439602339840?s=20&t=Zper7b85RVlpWoTKKJDkbg)",
+    "https://nitter.net/wezm/status/1323096439602339840?s=20&t=Zper7b85RVlpWoTKKJDkbg ([source](https://mobile.twitter.com/wezm/status/1323096439602339840?s=20&t=Zper7b85RVlpWoTKKJDkbg))",
   );
 });
 
@@ -29,7 +29,7 @@ Deno.test("twitterToNitter multiple", () => {
   );
   assertEquals(
     val,
-    "Here is some things from twitter.com https://nitter.net/wezm/status/1323096439602339840?s=20&t=Zper7b85RVlpWoTKKJDkbg [source](https://twitter.com/wezm/status/1323096439602339840?s=20&t=Zper7b85RVlpWoTKKJDkbg) and https://nitter.net/rustlang/status/1496894318887546883?s=20&t=Zper7b85RVlpWoTKKJDkbg [source](https://twitter.com/rustlang/status/1496894318887546883?s=20&t=Zper7b85RVlpWoTKKJDkbg)",
+    "Here is some things from twitter.com https://nitter.net/wezm/status/1323096439602339840?s=20&t=Zper7b85RVlpWoTKKJDkbg ([source](https://twitter.com/wezm/status/1323096439602339840?s=20&t=Zper7b85RVlpWoTKKJDkbg)) and https://nitter.net/rustlang/status/1496894318887546883?s=20&t=Zper7b85RVlpWoTKKJDkbg ([source](https://twitter.com/rustlang/status/1496894318887546883?s=20&t=Zper7b85RVlpWoTKKJDkbg))",
   );
 });
 
@@ -44,7 +44,7 @@ Deno.test("mediumToScribe", () => {
   );
   assertEquals(
     val,
-    "https://scribe.rip/swlh/make-your-raspberry-pi-file-system-read-only-raspbian-buster-c558694de79 [source](https://medium.com/swlh/make-your-raspberry-pi-file-system-read-only-raspbian-buster-c558694de79)",
+    "https://scribe.rip/swlh/make-your-raspberry-pi-file-system-read-only-raspbian-buster-c558694de79 ([source](https://medium.com/swlh/make-your-raspberry-pi-file-system-read-only-raspbian-buster-c558694de79))",
   );
 });
 
@@ -54,7 +54,7 @@ Deno.test("mediumToScribe subdomain", () => {
   );
   assertEquals(
     val,
-    "https://scribe.rip/lambda-calculus-an-elm-cli-fd537071db2b [source](https://jxxcarlson.medium.com/lambda-calculus-an-elm-cli-fd537071db2b)",
+    "https://scribe.rip/lambda-calculus-an-elm-cli-fd537071db2b ([source](https://jxxcarlson.medium.com/lambda-calculus-an-elm-cli-fd537071db2b))",
   );
 });
 
@@ -64,6 +64,6 @@ Deno.test("substituteUrls mixed", () => {
   );
   assertEquals(
     val,
-    "Here are some things from twitter.com https://nitter.net/wezm/status/1323096439602339840?s=20&t=Zper7b85RVlpWoTKKJDkbg [source](https://twitter.com/wezm/status/1323096439602339840?s=20&t=Zper7b85RVlpWoTKKJDkbg) and Medium https://scribe.rip/lambda-calculus-an-elm-cli-fd537071db2b [source](https://jxxcarlson.medium.com/lambda-calculus-an-elm-cli-fd537071db2b)",
+    "Here are some things from twitter.com https://nitter.net/wezm/status/1323096439602339840?s=20&t=Zper7b85RVlpWoTKKJDkbg ([source](https://twitter.com/wezm/status/1323096439602339840?s=20&t=Zper7b85RVlpWoTKKJDkbg)) and Medium https://scribe.rip/lambda-calculus-an-elm-cli-fd537071db2b ([source](https://jxxcarlson.medium.com/lambda-calculus-an-elm-cli-fd537071db2b))",
   );
 });
