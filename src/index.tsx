@@ -9,7 +9,7 @@ import {
   validateRequest,
 } from "https://deno.land/x/sift@0.4.3/mod.ts";
 
-import { twitterToNitter, mediumToScribe } from "./url.ts";
+import { substituteUrls } from "./url.ts";
 
 const routes: Routes = {
   "/": () => jsx(<Home />),
@@ -41,7 +41,7 @@ async function nitSlashCommand(request: Request) {
   const formData = await request.formData();
   const formText = formData.get("text");
   if (typeof formText === "string" && !formText.match(/^\s*$/)) {
-    const newText = mediumToScribe(twitterToNitter(formText));
+    const newText = substituteUrls(formText);
     return json({
       "response_type": "in_channel",
       "text": `${newText}`,
