@@ -77,7 +77,9 @@ function Home() {
 
             <ul>
               <li>
-                <code>/nit</code> — Convert Twitter links to Nitter links; Medium links to Scribe links.
+                <code>/nit</code>{" "}
+                — Convert Twitter links to Nitter links; Medium links to Scribe
+                links.
               </li>
             </ul>
           </main>
@@ -90,7 +92,7 @@ function Home() {
       </body>
     </html>
   );
-};
+}
 
 function NotFound() {
   return (
@@ -116,5 +118,4 @@ function NotFound() {
       </body>
     </html>
   );
-};
-
+}
