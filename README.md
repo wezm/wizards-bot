@@ -6,4 +6,4 @@ A helpful Mattermost bot for a small community.
 
 Run locally:
 
-    MM_SLASH_TOKEN=test deno run --watch --allow-net=:8000 --allow-env=DENO_REGION,MM_SLASH_TOKEN  --allow-read=src/style.css src/index.tsx
+    MM_SLASH_TOKEN=test cargo run
