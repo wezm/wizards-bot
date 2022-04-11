@@ -118,11 +118,17 @@ impl Server {
             let response = match request.url() {
                 "/" => Response::from_string(&*HOME_HTML).with_header(HTML_CONTENT_TYPE.clone()),
                 "/nit" => {
-                    let (obj, status) = self.nit_slash_command(&mut request);
-                    let body = json::stringify_pretty(obj, 2);
-                    Response::from_string(body)
-                        .with_header(JSON_CONTENT_TYPE.clone())
-                        .with_status_code(status)
+                    if request.method() == &Method::Post {
+                        let (obj, status) = self.nit_slash_command(&mut request);
+                        let body = json::stringify_pretty(obj, 2);
+                        Response::from_string(body)
+                            .with_header(JSON_CONTENT_TYPE.clone())
+                            .with_status_code(status)
+                    } else {
+                        Response::from_string(NOT_FOUND)
+                            .with_header(HTML_CONTENT_TYPE.clone())
+                            .with_status_code(404)
+                    }
                 }
                 "/style.css" => Response::from_string(CSS).with_header(CSS_CONTENT_TYPE.clone()),
                 _ => Response::from_string(NOT_FOUND)
@@ -181,10 +187,7 @@ impl Server {
     fn validate_request(request: &Request) -> Result<(&Header, &Header), (String, StatusCode)> {
         const BAD_REQUEST: u16 = 400;
 
-        // Validate request is POST and contains required headers
-        if request.method() != &Method::Post {
-            return Err((NOT_FOUND.to_string(), StatusCode::from(404)));
-        }
+        // Extract required headers
         let content_type = request
             .headers()
             .iter()
