@@ -15,7 +15,6 @@ use url::Url;
 const HTML: &str = include_str!("home.html");
 const CSS: &str = include_str!("style.css");
 const NOT_FOUND: &str = include_str!("not_found.html");
-const SERVER_ADDR: (&str, u16) = ("0.0.0.0", 8888);
 const ONE_SECOND: Duration = Duration::from_secs(1);
 
 // NOTE(unwrap): These are known valid
@@ -52,19 +51,26 @@ fn main() -> Result<(), io::Error> {
             })
         })?;
 
-    let server = match Server::new(SERVER_ADDR, mm_token) {
+    let server_addr = (
+        env::var("WIZARDS_BOT_ADDRESS").unwrap_or_else(|_| String::from("0.0.0.0")),
+        env::var("WIZARDS_BOT_PORT")
+            .ok()
+            .and_then(|port| port.parse::<u16>().ok())
+            .unwrap_or(8888),
+    );
+    let server = match Server::new(server_addr.clone(), mm_token) {
         Ok(server) => Arc::new(server),
         Err(err) => {
             eprintln!(
                 "Unable to start http server on {}:{}: {}",
-                SERVER_ADDR.0, SERVER_ADDR.1, err
+                server_addr.0, server_addr.1, err
             );
             process::exit(1);
         }
     };
     println!(
         "http server running on http://{}:{}",
-        SERVER_ADDR.0, SERVER_ADDR.1
+        server_addr.0, server_addr.1
     );
 
     // Handle HTTP requests
