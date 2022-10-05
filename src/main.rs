@@ -243,6 +243,9 @@ fn maybe_replace_url(captures: &Captures<'_>) -> String {
         .map_or(false, |host| host.ends_with("twitter.com"))
     {
         let _ = url.set_host(Some("nitter.net"));
+        // Nitter doesn't like Twitter's new tracking params so strip query string and hope for the
+        // best.
+        url.set_query(None);
         format!("{} ([source]({}))", url, url0)
     } else if url
         .host_str()
@@ -276,7 +279,7 @@ mod tests {
     );
         assert_eq!(
             val,
-            "https://nitter.net/wezm/status/1323096439602339840?s=20&t=Zper7b85RVlpWoTKKJDkbg ([source](https://mobile.twitter.com/wezm/status/1323096439602339840?s=20&t=Zper7b85RVlpWoTKKJDkbg))",
+            "https://nitter.net/wezm/status/1323096439602339840 ([source](https://mobile.twitter.com/wezm/status/1323096439602339840?s=20&t=Zper7b85RVlpWoTKKJDkbg))",
         );
     }
 
@@ -287,7 +290,7 @@ mod tests {
         );
         assert_eq!(
             val,
-            "Here is some things from twitter.com https://nitter.net/wezm/status/1323096439602339840?s=20&t=Zper7b85RVlpWoTKKJDkbg ([source](https://twitter.com/wezm/status/1323096439602339840?s=20&t=Zper7b85RVlpWoTKKJDkbg)) and https://nitter.net/rustlang/status/1496894318887546883?s=20&t=Zper7b85RVlpWoTKKJDkbg ([source](https://twitter.com/rustlang/status/1496894318887546883?s=20&t=Zper7b85RVlpWoTKKJDkbg))",
+            "Here is some things from twitter.com https://nitter.net/wezm/status/1323096439602339840 ([source](https://twitter.com/wezm/status/1323096439602339840?s=20&t=Zper7b85RVlpWoTKKJDkbg)) and https://nitter.net/rustlang/status/1496894318887546883 ([source](https://twitter.com/rustlang/status/1496894318887546883?s=20&t=Zper7b85RVlpWoTKKJDkbg))",
         );
     }
 
@@ -326,7 +329,7 @@ mod tests {
         );
         assert_eq!(
             val,
-            "Here are some things from twitter.com https://nitter.net/wezm/status/1323096439602339840?s=20&t=Zper7b85RVlpWoTKKJDkbg ([source](https://twitter.com/wezm/status/1323096439602339840?s=20&t=Zper7b85RVlpWoTKKJDkbg)) and Medium https://scribe.rip/lambda-calculus-an-elm-cli-fd537071db2b ([source](https://jxxcarlson.medium.com/lambda-calculus-an-elm-cli-fd537071db2b))",
+            "Here are some things from twitter.com https://nitter.net/wezm/status/1323096439602339840 ([source](https://twitter.com/wezm/status/1323096439602339840?s=20&t=Zper7b85RVlpWoTKKJDkbg)) and Medium https://scribe.rip/lambda-calculus-an-elm-cli-fd537071db2b ([source](https://jxxcarlson.medium.com/lambda-calculus-an-elm-cli-fd537071db2b))",
         );
     }
 }
