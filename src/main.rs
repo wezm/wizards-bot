@@ -238,10 +238,9 @@ fn maybe_replace_url(captures: &Captures<'_>) -> String {
     let url0 = captures.get(0).unwrap().as_str();
     let mut url: Url = url0.parse().unwrap();
 
-    if url
-        .host_str()
-        .map_or(false, |host| host.ends_with("twitter.com"))
-    {
+    if url.host_str().map_or(false, |host| {
+        host == "x.com" || host.ends_with("twitter.com")
+    }) {
         let _ = url.set_host(Some("nitter.net"));
         // Nitter doesn't like Twitter's new tracking params so strip query string and hope for the
         // best.
@@ -273,6 +272,15 @@ mod tests {
     }
 
     #[test]
+    fn x_to_nitter_desktop() {
+        let val = substitute_urls("https://x.com/wezm");
+        assert_eq!(
+            val,
+            "https://nitter.net/wezm ([source](https://x.com/wezm))",
+        );
+    }
+
+    #[test]
     fn twitter_to_nitter_mobile() {
         let val = substitute_urls(
         "https://mobile.twitter.com/wezm/status/1323096439602339840?s=20&t=Zper7b85RVlpWoTKKJDkbg",
@@ -298,6 +306,17 @@ mod tests {
     fn twitter_to_nitter_invalid() {
         let val = substitute_urls("https://twitter");
         assert_eq!(val, "https://twitter");
+    }
+
+    #[test]
+    fn x_tweet_to_nitter() {
+        let val = substitute_urls(
+            "https://x.com/nealagarwal/status/1691095252952834048?s=46&t=OJUN8AoB2f1zmJVHufidVg",
+        );
+        assert_eq!(
+            val,
+            "https://nitter.net/nealagarwal/status/1691095252952834048 ([source](https://x.com/nealagarwal/status/1691095252952834048?s=46&t=OJUN8AoB2f1zmJVHufidVg))",
+        );
     }
 
     #[test]
