@@ -4,6 +4,7 @@ mod datastore;
 use std::borrow::Cow;
 use std::error::Error;
 use std::net::ToSocketAddrs;
+use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -75,15 +76,8 @@ fn main() -> Result<(), io::Error> {
     let data_path = env::var_os("WIZARDS_BOT_DATA_PATH");
     let data_path = data_path
         .as_ref()
-        .ok_or_else(|| io::Error::new(io::ErrorKind::Other, "WIZARDS_BOT_DATA_PATH is not set"))
-        .and_then(|webhook| {
-            webhook.to_str().ok_or_else(|| {
-                io::Error::new(
-                    io::ErrorKind::Other,
-                    "WIZARDS_BOT_DATA_PATH is not valid UTF-8",
-                )
-            })
-        })?;
+        .map(Path::new)
+        .ok_or_else(|| io::Error::new(io::ErrorKind::Other, "WIZARDS_BOT_DATA_PATH is not set"))?;
 
     let bushfire_point = env::var_os("WIZARDS_BOT_BUSHFIRE_POINT");
     let bushfire_point = bushfire_point
@@ -119,7 +113,7 @@ fn main() -> Result<(), io::Error> {
         .map_err(|err| {
             io::Error::new(
                 io::ErrorKind::Other,
-                format!("unable to open datastore at {data_path}: {err}"),
+                format!("unable to open datastore at {}: {err}", data_path.display()),
             )
         })?;
 
