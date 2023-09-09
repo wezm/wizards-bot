@@ -1,21 +1,30 @@
+mod bushfire;
+mod datastore;
+
 use std::borrow::Cow;
 use std::error::Error;
 use std::net::ToSocketAddrs;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use std::{env, io, process, thread};
 
 use json::{object, JsonValue};
 use once_cell::sync::Lazy;
 use regex::{Captures, Regex};
+use time::format_description::well_known::Rfc2822;
 use tiny_http::{Header, HeaderField, Method, Request, Response, StatusCode};
 use url::Url;
+
+use crate::bushfire::Entry;
 
 const HTML: &str = include_str!("home.html");
 const CSS: &str = include_str!("style.css");
 const NOT_FOUND: &str = include_str!("not_found.html");
 const ONE_SECOND: Duration = Duration::from_secs(1);
+/// Poll the bushfire feed every 5 minutes
+const POLL_BUSHFIRE_FEED: u32 = 5 * 60;
+const BUSHFIRE_PAGE: &str = "https://www.qfes.qld.gov.au/Current-Incidents";
 
 // NOTE(unwrap): These are known valid
 static AUTHORIZATION: Lazy<HeaderField> = Lazy::new(|| "Authorization".parse().unwrap());
@@ -50,6 +59,69 @@ fn main() -> Result<(), io::Error> {
                 io::Error::new(io::ErrorKind::Other, "MM_SLASH_TOKEN is not valid UTF-8")
             })
         })?;
+    let mm_webhook = env::var_os("MM_BUSHFIRE_WEBHOOK");
+    let mm_webhook = mm_webhook
+        .as_ref()
+        .ok_or_else(|| io::Error::new(io::ErrorKind::Other, "MM_BUSHFIRE_WEBHOOK is not set"))
+        .and_then(|webhook| {
+            webhook.to_str().ok_or_else(|| {
+                io::Error::new(
+                    io::ErrorKind::Other,
+                    "MM_BUSHFIRE_WEBHOOK is not valid UTF-8",
+                )
+            })
+        })?;
+
+    let data_path = env::var_os("WIZARDS_BOT_DATA_PATH");
+    let data_path = data_path
+        .as_ref()
+        .ok_or_else(|| io::Error::new(io::ErrorKind::Other, "WIZARDS_BOT_DATA_PATH is not set"))
+        .and_then(|webhook| {
+            webhook.to_str().ok_or_else(|| {
+                io::Error::new(
+                    io::ErrorKind::Other,
+                    "WIZARDS_BOT_DATA_PATH is not valid UTF-8",
+                )
+            })
+        })?;
+
+    let bushfire_point = env::var_os("WIZARDS_BOT_BUSHFIRE_POINT");
+    let bushfire_point = bushfire_point
+        .as_ref()
+        .ok_or_else(|| {
+            io::Error::new(
+                io::ErrorKind::Other,
+                "WIZARDS_BOT_BUSHFIRE_POINT is not set",
+            )
+        })
+        .and_then(|webhook| {
+            webhook
+                .to_str()
+                .and_then(|s| s.split_once(','))
+                .and_then(|(lat, long)| match (lat.parse(), long.parse()) {
+                    (Ok(lat), Ok(long)) => Some((lat, long)),
+                    _ => None,
+                })
+                .ok_or_else(|| {
+                    io::Error::new(
+                        io::ErrorKind::Other,
+                        "Unable to parse WIZARDS_BOT_BUSHFIRE_POINT",
+                    )
+                })
+        })?;
+    println!(
+        "monitoring for bushfire events at {}, {}",
+        bushfire_point.0, bushfire_point.1
+    );
+
+    let datastore = datastore::Datastore::new(data_path)
+        .map(|store| Arc::new(Mutex::new(store)))
+        .map_err(|err| {
+            io::Error::new(
+                io::ErrorKind::Other,
+                format!("unable to open datastore at {data_path}: {err}"),
+            )
+        })?;
 
     let server_addr = (
         env::var("WIZARDS_BOT_ADDRESS").unwrap_or_else(|_| String::from("0.0.0.0")),
@@ -83,9 +155,46 @@ fn main() -> Result<(), io::Error> {
         threads.push(thread);
     }
 
+    // Set to the trigger value to cause an initial check on startup
+    let mut bushfire_wait = POLL_BUSHFIRE_FEED;
+
     // Wait for signals to exit
     while !term.load(Ordering::Relaxed) {
-        std::thread::sleep(ONE_SECOND);
+        thread::sleep(ONE_SECOND);
+        bushfire_wait += 1;
+        if bushfire_wait >= POLL_BUSHFIRE_FEED {
+            bushfire_wait = 0;
+            let entries = match bushfire::check(bushfire_point) {
+                Ok(entries) => {
+                    println!("polled bushfire feed");
+                    entries
+                }
+                Err(err) => {
+                    post_webhook(&format!("unable to poll bushfire feed: {err}"), mm_webhook);
+                    continue;
+                }
+            };
+            if !entries.is_empty() {
+                let mut datastore = datastore.lock().unwrap();
+                for entry in entries {
+                    if !datastore.contains(&entry.id) {
+                        // notify about this entry
+                        println!("notify of incident {}", entry.id.0);
+                        notify_entry(&entry, mm_webhook);
+                        match datastore.append(entry.id) {
+                            Ok(()) => (),
+                            Err(err) => {
+                                post_webhook(
+                                    &format!("unable to append entry to bushfire datastore: {err}"),
+                                    mm_webhook,
+                                );
+                                continue;
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
     server.shutdown();
 
@@ -220,13 +329,43 @@ impl Server {
     }
 }
 
+fn notify_entry(entry: &Entry, webhook: &str) {
+    let message = format!(
+        "#### ⚠️ {}\n\n**{}**\n\n{}\n\n**Published:** {}\n**Link:** {}",
+        entry.category.as_deref().unwrap_or("Unknown Category"),
+        entry.title.as_deref().unwrap_or("Untitled"),
+        entry.content.as_deref().unwrap_or("No content"),
+        entry
+            .published
+            .and_then(|published| published.format(&Rfc2822).ok())
+            .as_deref()
+            .unwrap_or("unknown"),
+        BUSHFIRE_PAGE
+    );
+    post_webhook(&message, webhook)
+}
+
+fn post_webhook(message: &str, webhook: &str) {
+    let body = object! {
+        text: message
+    };
+
+    match ureq::post(webhook)
+        .set("Content-Type", "application/json")
+        .send_string(&json::stringify(body))
+    {
+        Ok(_resp) => (),
+        Err(err) => eprintln!("Unable to post Mattermost message: {err}\n{message}"),
+    }
+}
+
 fn is_blank(text: &str) -> bool {
     text.chars().all(|ch| ch.is_whitespace())
 }
 
 static URL_REGEX: Lazy<Regex> = Lazy::new(||
     // https://www.regextester.com/94502
-    Regex::new(r#"https?://[[:word:].-]+(?:\.[[:word:].-]+)+[[:word:]\-._~:/?#\[\]@!$&'()*+,;=]+"#).unwrap());
+    Regex::new(r"https?://[[:word:].-]+(?:\.[[:word:].-]+)+[[:word:]\-._~:/?#\[\]@!$&'()*+,;=]+").unwrap());
 
 fn substitute_urls(text: &str) -> Cow<'_, str> {
     URL_REGEX.replace_all(text, maybe_replace_url)
