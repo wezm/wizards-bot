@@ -8,8 +8,11 @@ edition = "2021"
 [dependencies]
 form_urlencoded = "1.2.0"
 json = "0.12.4"
-signal-hook = "0.3.14"
-tiny_http = "0.12.0"
 once_cell = "1.18.0"
 regex = { version = "1.9.3", default-features = false, features = ["std"] }
+roxmltree = "0.18.0"
+signal-hook = "0.3.14"
+time = { version = "0.3.28", features = ["parsing", "formatting"] }
+tiny_http = "0.12.0"
+ureq = { version = "2.7.1", default-features = false, features = ["rustls", "tls"] }
 url = "2.4.0"
