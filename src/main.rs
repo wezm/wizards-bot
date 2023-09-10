@@ -104,7 +104,7 @@ fn main() -> Result<(), io::Error> {
                 })
         })?;
     println!(
-        "monitoring for bushfire events at {}, {}",
+        "INFO: monitoring for bushfire events at {}, {}",
         bushfire_point.0, bushfire_point.1
     );
 
@@ -128,14 +128,14 @@ fn main() -> Result<(), io::Error> {
         Ok(server) => Arc::new(server),
         Err(err) => {
             eprintln!(
-                "Unable to start http server on {}:{}: {}",
+                "ERROR: Unable to start http server on {}:{}: {}",
                 server_addr.0, server_addr.1, err
             );
             process::exit(1);
         }
     };
     println!(
-        "http server running on http://{}:{}",
+        "INFO: http server running on http://{}:{}",
         server_addr.0, server_addr.1
     );
 
@@ -144,7 +144,7 @@ fn main() -> Result<(), io::Error> {
         let server = Arc::clone(&server);
         let thread = thread::spawn(move || {
             server.handle_requests();
-            println!("server thread exiting");
+            println!("INFO: server thread exiting");
         });
         threads.push(thread);
     }
@@ -160,11 +160,12 @@ fn main() -> Result<(), io::Error> {
             bushfire_wait = 0;
             let entries = match bushfire::check(bushfire_point) {
                 Ok(entries) => {
-                    println!("polled bushfire feed");
+                    println!("INFO: polled bushfire feed");
                     entries
                 }
                 Err(err) => {
-                    post_webhook(&format!("unable to poll bushfire feed: {err}"), mm_webhook);
+                    let _ =
+                        post_webhook(&format!("unable to poll bushfire feed: {err}"), mm_webhook);
                     continue;
                 }
             };
@@ -173,16 +174,27 @@ fn main() -> Result<(), io::Error> {
                 for entry in entries {
                     if !datastore.contains(&entry.id) {
                         // notify about this entry
-                        println!("notify of incident {}", entry.id.0);
-                        notify_entry(&entry, mm_webhook);
-                        match datastore.append(entry.id) {
-                            Ok(()) => (),
+                        println!("INFO: notify of incident {}", entry.id.0);
+                        match notify_entry(&entry, mm_webhook) {
+                            Ok(()) => {
+                                match datastore.append(entry.id) {
+                                    Ok(()) => (),
+                                    Err(err) => {
+                                        if let Err(notify_err) = post_webhook(
+                                            &format!("Unable to append entry to bushfire datastore: {err}"),
+                                            mm_webhook,
+                                        ) {
+                                            eprintln!("ERROR: Unable to append entry to bushfire datastore: {err}, error posting notification about that error: {notify_err}")
+                                        }
+                                        continue;
+                                    }
+                                }
+                            }
                             Err(err) => {
-                                post_webhook(
-                                    &format!("unable to append entry to bushfire datastore: {err}"),
-                                    mm_webhook,
-                                );
-                                continue;
+                                eprintln!(
+                                    "ERROR: Unable to post notification: {}: {}",
+                                    err.error, err.notification
+                                )
                             }
                         }
                     }
@@ -323,7 +335,12 @@ impl Server {
     }
 }
 
-fn notify_entry(entry: &Entry, webhook: &str) {
+struct NotifyError {
+    notification: String,
+    error: ureq::Error,
+}
+
+fn notify_entry(entry: &Entry, webhook: &str) -> Result<(), NotifyError> {
     let message = format!(
         "#### ⚠️ {}\n\n**{}**\n\n{}\n\n**Published:** {}\n**Link:** {}",
         entry.category.as_deref().unwrap_or("Unknown Category"),
@@ -336,21 +353,21 @@ fn notify_entry(entry: &Entry, webhook: &str) {
             .unwrap_or("unknown"),
         BUSHFIRE_PAGE
     );
-    post_webhook(&message, webhook)
+    post_webhook(&message, webhook).map_err(|error| NotifyError {
+        notification: message,
+        error,
+    })
 }
 
-fn post_webhook(message: &str, webhook: &str) {
+fn post_webhook(message: &str, webhook: &str) -> Result<(), ureq::Error> {
     let body = object! {
         text: message
     };
 
-    match ureq::post(webhook)
+    ureq::post(webhook)
         .set("Content-Type", "application/json")
         .send_string(&json::stringify(body))
-    {
-        Ok(_resp) => (),
-        Err(err) => eprintln!("Unable to post Mattermost message: {err}\n{message}"),
-    }
+        .map(drop)
 }
 
 fn is_blank(text: &str) -> bool {
