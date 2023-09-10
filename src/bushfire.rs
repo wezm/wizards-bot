@@ -114,18 +114,33 @@ impl Entry {
     /// Determine if the point in `self` is near the supplied `reference` point.
     fn near(&self, reference: LatLong) -> bool {
         // If we don't know where this entry is then just assume it is nearby to be safe.
-        self.point.map_or(true, |point| near(reference, point))
+        self.point
+            .map_or(true, |point| near(reference, point, ALERT_DISTANCE))
     }
 }
 
-/// Construct a box around self.point and then see of it contains point.
+/// Distance from reference point to edge of square representing the alert region
+///
+/// ```text
+/// |--------| ALERT_DISTANCE
+///
+/// +-----------------+
+/// |                 |
+/// |                 |
+/// |        X        |
+/// |                 |
+/// |                 |
+/// +-----------------+
+/// ```
+const ALERT_DISTANCE: f64 = 30.0;
+
+/// Construct a box around `reference` and then see of it contains `point`.
 ///
 /// This is done crudely and assumes that the offsets applied to the reference point won't
-/// under or overflow.
-fn near(reference: LatLong, point: LatLong) -> bool {
-    // 0.1 is 11.1 km so this will build an approx 100km square around point
-    // https://gis.stackexchange.com/a/8655
-    let offset = 0.9 / 2.;
+/// under/overflow or cross zero.
+fn near(reference: LatLong, point: LatLong, alert_distance: f64) -> bool {
+    // 0.1 is 11.1 km https://gis.stackexchange.com/a/8655
+    let offset = alert_distance / 111.;
     let top_left = (point.0 - offset, point.1 - offset);
     let bottom_right = (point.0 + offset, point.1 + offset);
     (top_left.0..bottom_right.0).contains(&reference.0)
@@ -179,8 +194,8 @@ mod tests {
         let ocean_view = (-27.127664662091, 152.87902054721);
         let noosa = (-26.400054, 153.0223421);
 
-        assert!(near(brisbane, ocean_view));
-        assert!(!near(brisbane, noosa));
+        assert!(near(brisbane, ocean_view, 50.));
+        assert!(!near(brisbane, noosa, 50.));
     }
 
     #[test]
