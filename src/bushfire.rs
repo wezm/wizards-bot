@@ -132,7 +132,7 @@ impl Entry {
 /// |                 |
 /// +-----------------+
 /// ```
-const ALERT_DISTANCE: f64 = 30.0;
+const ALERT_DISTANCE: f64 = 10.0;
 
 /// Construct a box around `reference` and then see of it contains `point`.
 ///
