@@ -6,4 +6,4 @@ A helpful Mattermost bot for a small community.
 
 Run locally:
 
-    MM_SLASH_TOKEN=test cargo run
+    MM_SLASH_TOKEN=test MM_BUSHFIRE_WEBHOOK="" WIZARDS_BOT_BUSHFIRE_POINT="1,2" WIZARDS_BOT_DATA_PATH=data cargo run
