@@ -341,17 +341,24 @@ struct NotifyError {
 }
 
 fn notify_entry(entry: &Entry, webhook: &str) -> Result<(), NotifyError> {
+    let location_url = entry.point.map(|(lat, lon)| {
+        format!(
+            "https://duckduckgo.com/?t=h_&q={}%2C{}&ia=web&iaxm=maps",
+            lat, lon
+        )
+    });
     let message = format!(
-        "#### ⚠️ {}\n\n**{}**\n\n{}\n\n**Published:** {}\n**Link:** {}",
-        entry.category.as_deref().unwrap_or("Unknown Category"),
-        entry.title.as_deref().unwrap_or("Untitled"),
-        entry.content.as_deref().unwrap_or("No content"),
-        entry
+        "#### ⚠️ {category}\n\n[**{title}**]({map_link})\n\n{content}\n\n**Published:** {published}\n**Link:** {link}",
+        category = entry.category.as_deref().unwrap_or("Unknown Category"),
+        title = entry.title.as_deref().unwrap_or("Untitled"),
+        content = entry.content.as_deref().unwrap_or("No content"),
+        published = entry
             .published
             .and_then(|published| published.format(&Rfc2822).ok())
             .as_deref()
             .unwrap_or("unknown"),
-        BUSHFIRE_PAGE
+        link = BUSHFIRE_PAGE,
+        map_link = location_url.as_deref().unwrap_or(BUSHFIRE_PAGE),
     );
     post_webhook(&message, webhook).map_err(|error| NotifyError {
         notification: message,
