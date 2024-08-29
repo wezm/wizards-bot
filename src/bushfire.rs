@@ -42,8 +42,8 @@ pub enum BushfireError {
 /// Check for entries to notify about.
 pub fn check(notify_near: LatLong) -> Result<Vec<Entry>, BushfireError> {
     let agent: Agent = ureq::AgentBuilder::new()
-        .timeout_read(Duration::from_secs(5))
-        .timeout_write(Duration::from_secs(5))
+        .timeout_read(Duration::from_secs(15))
+        .timeout_write(Duration::from_secs(15))
         .build();
 
     // Fetch the feed
