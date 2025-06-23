@@ -9,10 +9,7 @@ use time::format_description::well_known::Rfc3339;
 use time::OffsetDateTime;
 use ureq::Agent;
 
-// NOTE: This URL redirects to the actual feed. It's a permanent redirect to an S3 file but I'm
-// not sure I trust the permanence of it.
-// const FEED_URL: &str = "https://www.qfes.qld.gov.au/data/alerts/bushfireAlert.xml";
-const FEED_URL: &str = "http://publiccontent-gis-psba-qld-gov-au.s3-ap-southeast-2.amazonaws.com/content/Feeds/BushfireCurrentIncidents/bushfireAlert.xml";
+const FEED_URL: &str = "https://publiccontent-gis-psba-qld-gov-au.s3.amazonaws.com/content/Feeds/BushfireCurrentIncidents/bushfireAlert.xml";
 const ATOM_NS: &str = "http://www.w3.org/2005/Atom";
 const GEORSS_NS: &str = "http://www.georss.org/georss";
 
