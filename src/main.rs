@@ -372,8 +372,8 @@ fn post_webhook(message: &str, webhook: &str) -> Result<(), ureq::Error> {
     };
 
     ureq::post(webhook)
-        .set("Content-Type", "application/json")
-        .send_string(&json::stringify(body))
+        .header("Content-Type", "application/json")
+        .send(&json::stringify(body))
         .map(drop)
 }
 

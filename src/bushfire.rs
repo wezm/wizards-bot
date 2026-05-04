@@ -38,13 +38,13 @@ pub enum BushfireError {
 
 /// Check for entries to notify about.
 pub fn check(notify_near: LatLong) -> Result<Vec<Entry>, BushfireError> {
-    let agent: Agent = ureq::AgentBuilder::new()
-        .timeout_read(Duration::from_secs(15))
-        .timeout_write(Duration::from_secs(15))
+    let config = ureq::Agent::config_builder()
+        .timeout_global(Some(Duration::from_secs(15)))
         .build();
+    let agent: Agent = config.into();
 
     // Fetch the feed
-    let body: String = agent.get(FEED_URL).call()?.into_string()?;
+    let body: String = agent.get(FEED_URL).call()?.body_mut().read_to_string()?;
 
     // Parse and note entries that are in range
     let mut notify = Vec::new();
